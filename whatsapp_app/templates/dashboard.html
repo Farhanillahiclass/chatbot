@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — WhatsApp Automation{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Add Keyword Rule</h2>
+    <p class="text-muted" style="margin-bottom:16px;">
+        When an incoming WhatsApp message matches the <strong>keyword</strong>,
+        the bot will automatically reply with the <strong>response</strong>.
+    </p>
+    <form method="POST" action="{{ url_for('dashboard.add_rule') }}">
+        <label for="keyword">Keyword (incoming message)</label>
+        <input type="text" id="keyword" name="keyword" placeholder='e.g. "hello"' required>
+
+        <label for="reply">Auto-Reply</label>
+        <input type="text" id="reply" name="reply" placeholder='e.g. "Hi there! How can I help you?"' required>
+
+        <button type="submit">Add Rule</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Your Keyword Rules</h2>
+    {% if rules %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Keyword</th>
+                <th>Auto-Reply</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rule in rules %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ rule.keyword }}</td>
+                <td>{{ rule.reply }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('dashboard.delete_rule', rule_id=rule.id) }}" style="display:inline;">
+                        <button type="submit" class="btn-danger" style="padding:5px 12px; font-size:0.85rem;">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-muted text-center">No rules yet. Add one above to get started.</p>
+    {% endif %}
+</div>
+{% endblock %}
