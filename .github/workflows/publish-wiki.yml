@@ -1,0 +1,56 @@
+name: Publish Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'wiki/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Push wiki content
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Configure git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Clone or init wiki repo
+          WIKI_URL="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.wiki.git"
+
+          WIKI_DIR=$(mktemp -d)
+          if git clone "$WIKI_URL" "$WIKI_DIR" 2>/dev/null; then
+            echo "Wiki repo cloned successfully"
+          else
+            echo "Wiki repo does not exist yet, initializing..."
+            cd "$WIKI_DIR"
+            git init
+            git checkout -b master
+            git remote add origin "$WIKI_URL"
+            cd -
+          fi
+
+          # Copy wiki content
+          cp wiki/*.md "$WIKI_DIR/"
+
+          # Commit and push
+          cd "$WIKI_DIR"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to wiki content"
+          else
+            git commit -m "Update wiki content"
+            git push origin master || git push --set-upstream origin master
+            echo "Wiki content published successfully"
+          fi
