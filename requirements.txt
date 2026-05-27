@@ -1,2 +1,6 @@
 streamlit
 openai
+flask
+flask-sqlalchemy
+requests
+werkzeug

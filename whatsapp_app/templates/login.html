@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Login — WhatsApp Automation{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:420px; margin:60px auto;">
+    <h2>Login</h2>
+    <form method="POST" action="{{ url_for('auth.login') }}">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required autofocus>
+
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+
+        <button type="submit" style="width:100%;">Log In</button>
+    </form>
+    <p class="text-center" style="margin-top:16px;">
+        Don't have an account? <a class="link" href="{{ url_for('auth.register') }}">Register</a>
+    </p>
+</div>
+{% endblock %}
