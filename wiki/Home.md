@@ -24,6 +24,11 @@ This chatbot template provides a ready-to-use conversational AI interface. It fe
 - **Secure API Key Input**: API key is entered via a password-masked input field
 - **Dev Container Support**: Ready-to-use GitHub Codespaces / Dev Container configuration
 
+## Repository
+
+- **Source Code**: [github.com/Farhanillahiclass/chatbot](https://github.com/Farhanillahiclass/chatbot)
+- **Live Demo**: [chatbot-template.streamlit.app](https://chatbot-template.streamlit.app/)
+
 ## License
 
 This project is licensed under the [Apache License 2.0](https://github.com/Farhanillahiclass/chatbot/blob/main/LICENSE).
