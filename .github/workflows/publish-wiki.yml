@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: write
+  pages: write
 
 jobs:
   publish-wiki:
@@ -18,39 +19,72 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Initialize wiki via API if needed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          WIKI_URL="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.wiki.git"
+          if git ls-remote "$WIKI_URL" HEAD >/dev/null 2>&1; then
+            echo "Wiki repository already exists."
+          else
+            echo "Wiki repository does not exist. Attempting to initialize via GitHub API..."
+            # Create initial Home page via the GitHub REST API to initialize the wiki repo
+            HTTP_STATUS=$(curl -s -o /tmp/wiki_response.json -w "%{http_code}" \
+              -X PUT \
+              -H "Authorization: token ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/wiki/pages/Home" \
+              -d '{"message":"Initialize wiki","content":"# Welcome\nInitializing wiki..."}')
+            echo "API response status: $HTTP_STATUS"
+            cat /tmp/wiki_response.json || true
+
+            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+              echo "Wiki initialized via API."
+            else
+              echo "API initialization returned status $HTTP_STATUS. Trying direct git push..."
+              WIKI_DIR_INIT=$(mktemp -d)
+              cd "$WIKI_DIR_INIT"
+              git init
+              git checkout -b master
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              echo "# Welcome" > Home.md
+              git add Home.md
+              git commit -m "Initialize wiki"
+              git remote add origin "$WIKI_URL"
+              if git push -u origin master 2>&1; then
+                echo "Wiki initialized via direct git push."
+              else
+                echo "::error::Could not initialize wiki. Please create the first wiki page manually at: https://github.com/${{ github.repository }}/wiki/_new then re-run this workflow."
+                exit 1
+              fi
+              cd -
+            fi
+            # Wait for GitHub to process the wiki repo creation
+            sleep 5
+          fi
+
       - name: Push wiki content
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Configure git
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Clone or init wiki repo
           WIKI_URL="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.wiki.git"
 
           WIKI_DIR=$(mktemp -d)
-          if git clone "$WIKI_URL" "$WIKI_DIR" 2>/dev/null; then
-            echo "Wiki repo cloned successfully"
-          else
-            echo "Wiki repo does not exist yet, initializing..."
-            cd "$WIKI_DIR"
-            git init
-            git checkout -b master
-            git remote add origin "$WIKI_URL"
-            cd -
-          fi
+          git clone "$WIKI_URL" "$WIKI_DIR"
 
-          # Copy wiki content
+          # Copy wiki content (overwrite existing)
           cp wiki/*.md "$WIKI_DIR/"
 
-          # Commit and push
           cd "$WIKI_DIR"
           git add -A
           if git diff --cached --quiet; then
             echo "No changes to wiki content"
           else
             git commit -m "Update wiki content"
-            git push origin master || git push --set-upstream origin master
+            git push origin master
             echo "Wiki content published successfully"
           fi
